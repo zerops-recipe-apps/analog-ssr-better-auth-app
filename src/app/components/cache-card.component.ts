@@ -13,6 +13,15 @@ import { DashboardStateService } from '../services/dashboard-state.service';
  * previews the current avatar, sourced from the profile fetch or updated
  * directly from an upload response (see DashboardStateService.
  * applyUploadedAvatar) without an extra round trip.
+ *
+ * The upload endpoint accepts any file (the Storage card's blob fallback
+ * uploads a tiny text payload, and a real porter can pick any file type in
+ * the file selector) and unconditionally sets it as the avatar -- there is
+ * no image-mimetype check server-side. An `<img>` pointed at a non-image
+ * object renders the browser's broken-image box; the `(error)` handler
+ * below falls back to the initials circle instead of leaving a broken
+ * image visible, which would read as a rendering bug rather than "this
+ * upload wasn't a picture."
  */
 @Component({
   selector: 'app-cache-card',
@@ -63,8 +72,13 @@ import { DashboardStateService } from '../services/dashboard-state.service';
         </p>
       } @else {
         <div class="flex items-center gap-3">
-          @if (state.profile()?.avatarUrl; as avatarUrl) {
-            <img [src]="avatarUrl" alt="Avatar" class="h-12 w-12 rounded-full border border-[var(--zerops-outline-variant)] object-cover" />
+          @if (!avatarBroken() && state.profile()?.avatarUrl; as avatarUrl) {
+            <img
+              [src]="avatarUrl"
+              alt="Avatar"
+              (error)="onAvatarError()"
+              class="h-12 w-12 rounded-full border border-[var(--zerops-outline-variant)] object-cover"
+            />
           } @else {
             <div
               class="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--zerops-surface-high)] font-[var(--zerops-font-head)] text-sm text-[var(--zerops-on-surface-muted)]"
@@ -144,6 +158,8 @@ export class CacheCardComponent {
     return source.charAt(0).toUpperCase();
   });
 
+  protected readonly avatarBroken = signal(false);
+
   constructor() {
     // Keeps the edit form pre-filled with whatever was last fetched --
     // runs on the client only in practice, since `profile` never leaves
@@ -154,7 +170,14 @@ export class CacheCardComponent {
         this.editName = profile.name;
         this.editBio = profile.bio ?? '';
       }
+      // A new avatarUrl deserves a fresh attempt at loading as an image,
+      // even if a previous one failed.
+      this.avatarBroken.set(false);
     });
+  }
+
+  onAvatarError(): void {
+    this.avatarBroken.set(true);
   }
 
   async viewProfile(): Promise<void> {
