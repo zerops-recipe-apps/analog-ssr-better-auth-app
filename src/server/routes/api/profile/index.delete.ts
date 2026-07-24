@@ -12,7 +12,7 @@ import { removeUserFromIndex } from '../../../lib/search';
  * callback — this recipe provisions no mailer (out of scope for the
  * showcase service set), so account deletion is a direct row delete
  * instead. `session`/`account` rows cascade via the existing
- * `ON DELETE CASCADE` foreign keys from the scaffold-authored schema; no
+ * `ON DELETE CASCADE` foreign keys already present on those tables; no
  * separate cleanup query needed for those two tables.
  */
 export default defineEventHandler(async (event) => {

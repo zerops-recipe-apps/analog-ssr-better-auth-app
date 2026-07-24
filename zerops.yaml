@@ -22,7 +22,7 @@ zerops:
       base: nodejs@22
       initCommands:
         - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node migrate.cjs
-        - zsc execOnce ${INIT_SEED} --retryUntilSuccessful -- node seed.cjs
+        - zsc execOnce seed-v1 --retryUntilSuccessful -- node seed.cjs
       ports:
         - port: 3000
           httpSupport: true
@@ -34,7 +34,6 @@ zerops:
         DB_USER: ${db_user}
         DB_PASSWORD: ${db_password}
         APP_URL: ${zeropsSubdomain}
-        INIT_SEED: seed-v1
         CACHE_URL: ${cache_connectionString}
         NATS_HOST: ${broker_hostname}
         NATS_PORT: ${broker_port}
@@ -67,7 +66,7 @@ zerops:
       os: ubuntu
       initCommands:
         - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node scripts/migrate.mjs
-        - zsc execOnce ${INIT_SEED} --retryUntilSuccessful -- node scripts/seed.mjs
+        - zsc execOnce seed-v1 --retryUntilSuccessful -- node scripts/seed.mjs
       ports:
         - port: 5173
           httpSupport: true
@@ -79,7 +78,6 @@ zerops:
         DB_USER: ${db_user}
         DB_PASSWORD: ${db_password}
         APP_URL: ${zeropsSubdomain}
-        INIT_SEED: seed-v1
         CACHE_URL: ${cache_connectionString}
         NATS_HOST: ${broker_hostname}
         NATS_PORT: ${broker_port}

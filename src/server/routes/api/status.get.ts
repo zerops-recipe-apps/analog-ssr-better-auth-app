@@ -42,5 +42,9 @@ export default defineEventHandler(async () => {
     broker: broker ? 'ok' : 'down',
     search: search ? 'ok' : 'down',
     storage: storage ? 'ok' : 'down',
+    // Diagnostic only — confirms the container is actually running the
+    // `prod`/`dev` setup its zerops.yaml declares, not a build-vs-runtime
+    // env mismatch.
+    nodeEnv: process.env['NODE_ENV'] ?? null,
   };
 });
