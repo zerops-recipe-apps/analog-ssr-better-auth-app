@@ -10,4 +10,8 @@ export default defineConfig(() => ({
     mainFields: ['module'],
   },
   plugins: [analog()],
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: true,
+  },
 }));
