@@ -1,0 +1,65 @@
+zerops:
+  - setup: prod
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm ci
+        - node scripts/bundle-migrate.mjs
+        - NODE_OPTIONS=--max-old-space-size=1500 npm run build
+      deployFiles:
+        - dist/analog
+        - migrate.cjs
+      cache:
+        - node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
+    run:
+      base: nodejs@22
+      initCommands:
+        - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node migrate.cjs
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        NODE_ENV: production
+        DB_HOST: ${db_hostname}
+        DB_PORT: ${db_port}
+        DB_NAME: ${db_dbName}
+        DB_USER: ${db_user}
+        DB_PASSWORD: ${db_password}
+        APP_URL: ${zeropsSubdomain}
+      start: node dist/analog/server/index.mjs
+      healthCheck:
+        httpGet:
+          port: 3000
+          path: /
+
+  - setup: dev
+    build:
+      base: nodejs@22
+      os: ubuntu
+      buildCommands:
+        - npm install
+      deployFiles: ./
+      cache:
+        - node_modules
+    run:
+      base: nodejs@22
+      os: ubuntu
+      initCommands:
+        - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node scripts/migrate.mjs
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        NODE_ENV: development
+        DB_HOST: ${db_hostname}
+        DB_PORT: ${db_port}
+        DB_NAME: ${db_dbName}
+        DB_USER: ${db_user}
+        DB_PASSWORD: ${db_password}
+        APP_URL: ${zeropsSubdomain}
+      start: zsc noop --silent
