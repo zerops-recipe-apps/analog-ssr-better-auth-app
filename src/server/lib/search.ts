@@ -5,11 +5,24 @@ import { Meilisearch } from 'meilisearch';
  * "s") as of v0.57 — earlier versions exported `MeiliSearch`. Getting the
  * casing wrong fails at import time with a named-export error, not a
  * runtime API error, so it's easy to misdiagnose as a connectivity issue.
+ *
+ * Constructed lazily (first real use), not at module top level — see the
+ * comment in `cache.ts` for why: Analog's production build prerenders
+ * `/` (booting an in-process Nitro server, including this module) before
+ * Zerops has injected any runtime env, and Meilisearch's constructor
+ * validates `host` synchronously, throwing immediately if it's undefined.
  */
-const client = new Meilisearch({
-  host: process.env['SEARCH_URL'] as string,
-  apiKey: process.env['SEARCH_MASTER_KEY'],
-});
+let client: Meilisearch | null = null;
+
+function getClient(): Meilisearch {
+  if (!client) {
+    client = new Meilisearch({
+      host: process.env['SEARCH_URL'] as string,
+      apiKey: process.env['SEARCH_MASTER_KEY'],
+    });
+  }
+  return client;
+}
 
 const USERS_INDEX = 'users';
 
@@ -30,7 +43,7 @@ export interface SearchableUser {
  * server process).
  */
 export function getSearchIndex() {
-  return client.index<SearchableUser>(USERS_INDEX);
+  return getClient().index<SearchableUser>(USERS_INDEX);
 }
 
 /** Called once at boot (see `server/plugins/search-bootstrap.ts`). */
@@ -58,7 +71,7 @@ export async function getIndexedCount(): Promise<number> {
 
 export async function isSearchHealthy(): Promise<boolean> {
   try {
-    const health = await client.health();
+    const health = await getClient().health();
     return health.status === 'available';
   } catch {
     return false;

@@ -7,18 +7,40 @@ import Redis from 'ioredis';
  * mandatory auth automatically. Valkey on Zerops REQUIRES auth; connecting
  * without a password throws `NOAUTH Authentication required.` on the first
  * command.
+ *
+ * Constructed lazily (first real use), not at module top level. Analog's
+ * production build prerenders `/`, which boots an in-process Nitro server
+ * — including this module — before the container ever runs and before
+ * Zerops has injected CACHE_URL. A lazy singleton behind a Proxy defers
+ * construction until a request handler actually calls a method on
+ * `cache`, by which point real runtime env is present; every call site
+ * keeps using `cache.get(...)` / `cache.multi()...` unchanged.
  */
-export const cache = new Redis(process.env['CACHE_URL'] as string, {
-  // Fail fast on the status-check path rather than ioredis's default of
-  // queuing commands indefinitely while it retries in the background.
-  maxRetriesPerRequest: 3,
-});
+let client: Redis | null = null;
 
-cache.on('error', (err) => {
-  // ioredis emits 'error' on every reconnect attempt while the connection
-  // is down; log without crashing the process (an unhandled 'error' event
-  // on an EventEmitter is fatal in Node otherwise).
-  console.error('cache: connection error', err.message);
+function getClient(): Redis {
+  if (!client) {
+    client = new Redis(process.env['CACHE_URL'] as string, {
+      // Fail fast on the status-check path rather than ioredis's default
+      // of queuing commands indefinitely while it retries in the background.
+      maxRetriesPerRequest: 3,
+    });
+    client.on('error', (err) => {
+      // ioredis emits 'error' on every reconnect attempt while the
+      // connection is down; log without crashing the process (an
+      // unhandled 'error' event on an EventEmitter is fatal otherwise).
+      console.error('cache: connection error', err.message);
+    });
+  }
+  return client;
+}
+
+export const cache = new Proxy({} as Redis, {
+  get(_target, prop, receiver) {
+    const real = getClient();
+    const value = Reflect.get(real, prop, receiver);
+    return typeof value === 'function' ? value.bind(real) : value;
+  },
 });
 
 const SESSION_CACHE_PREFIX = 'session-user:';

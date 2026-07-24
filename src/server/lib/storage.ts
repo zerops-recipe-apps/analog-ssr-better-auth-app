@@ -17,18 +17,33 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
  * signer but MinIO itself ignores its value, so `us-east-1` is a literal,
  * not a cross-service reference — there's no `${storage_region}` token to
  * wire.
+ *
+ * Constructed lazily (first real use), not at module top level — see the
+ * comment in `cache.ts` for why (Analog's production build prerenders `/`,
+ * booting an in-process Nitro server, including this module, before
+ * Zerops has injected any runtime env).
  */
-const s3 = new S3Client({
-  endpoint: process.env['S3_ENDPOINT'],
-  region: process.env['S3_REGION'] || 'us-east-1',
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: process.env['S3_ACCESS_KEY_ID'] as string,
-    secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] as string,
-  },
-});
+let s3Client: S3Client | null = null;
 
-const BUCKET = process.env['S3_BUCKET'] as string;
+function getS3Client(): S3Client {
+  if (!s3Client) {
+    s3Client = new S3Client({
+      endpoint: process.env['S3_ENDPOINT'],
+      region: process.env['S3_REGION'] || 'us-east-1',
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env['S3_ACCESS_KEY_ID'] as string,
+        secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] as string,
+      },
+    });
+  }
+  return s3Client;
+}
+
+function bucket(): string {
+  return process.env['S3_BUCKET'] as string;
+}
+
 const SIGNED_URL_TTL_SECONDS = 300;
 
 function safeFilename(name: string): string {
@@ -42,9 +57,9 @@ export async function uploadAvatar(
   originalFilename: string,
 ): Promise<{ key: string; size: number }> {
   const key = `avatars/${userId}-${Date.now()}-${safeFilename(originalFilename)}`;
-  await s3.send(
+  await getS3Client().send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: bucket(),
       Key: key,
       Body: body,
       ContentType: contentType || 'application/octet-stream',
@@ -59,14 +74,14 @@ export async function uploadAvatar(
  * so avatars are readable under a `private` bucket policy too.
  */
 export async function getSignedAvatarUrl(key: string): Promise<string> {
-  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), {
+  return getSignedUrl(getS3Client(), new GetObjectCommand({ Bucket: bucket(), Key: key }), {
     expiresIn: SIGNED_URL_TTL_SECONDS,
   });
 }
 
 export async function deleteAvatar(key: string): Promise<void> {
   try {
-    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+    await getS3Client().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
   } catch (err) {
     // Best-effort cleanup on account delete — an orphaned object is a
     // minor storage-quota cost, not worth failing the delete-account
@@ -94,8 +109,8 @@ export async function listRecentObjects(limit = 5): Promise<{
   objectCount: number;
   recent: StorageObjectSummary[];
 }> {
-  const result = await s3.send(
-    new ListObjectsV2Command({ Bucket: BUCKET, MaxKeys: 1000 }),
+  const result = await getS3Client().send(
+    new ListObjectsV2Command({ Bucket: bucket(), MaxKeys: 1000 }),
   );
   const contents = result.Contents ?? [];
   const sorted = [...contents].sort((a, b) => {
@@ -118,7 +133,7 @@ export async function listRecentObjects(limit = 5): Promise<{
 
 export async function isStorageHealthy(): Promise<boolean> {
   try {
-    await s3.send(new HeadBucketCommand({ Bucket: BUCKET }));
+    await getS3Client().send(new HeadBucketCommand({ Bucket: bucket() }));
     return true;
   } catch {
     return false;
