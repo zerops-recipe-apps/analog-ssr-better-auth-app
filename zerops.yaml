@@ -52,7 +52,7 @@ zerops:
       initCommands:
         - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node scripts/migrate.mjs
       ports:
-        - port: 3000
+        - port: 5173
           httpSupport: true
       envVariables:
         NODE_ENV: development
