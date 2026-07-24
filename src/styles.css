@@ -1,3 +1,58 @@
+@import 'tailwindcss';
+
+/*
+ * Zerops design tokens — CSS custom properties, Material-3-style auto-flip
+ * via `@media (prefers-color-scheme: dark)` (NOT Tailwind `dark:` variants;
+ * every component reads the same `var(--zerops-*)` name in both schemes and
+ * the value itself flips). Component files author Tailwind arbitrary-value
+ * utilities against these vars (`bg-[var(--zerops-primary)]`,
+ * `rounded-[var(--zerops-radius-card)]`) — never a hardcoded hex, never the
+ * default Tailwind palette.
+ */
+:root {
+  color-scheme: light;
+
+  --zerops-primary: #00a49a;
+  --zerops-primary-on: #ffffff;
+  --zerops-teal: #00ccbb;
+  --zerops-success: #00cc55;
+  --zerops-warning: #9a6700;
+  --zerops-error: #be0e14;
+  --zerops-tertiary: #b8006b;
+
+  --zerops-bg: #ffffff;
+  --zerops-surface: #f8f9ff;
+  --zerops-surface-high: #eef0fb;
+  --zerops-on-surface: #161c25;
+  --zerops-on-surface-muted: #4b5565;
+  --zerops-outline-variant: #d6dae6;
+  --zerops-card-bg: var(--zerops-surface);
+
+  --zerops-radius-card: 12px;
+  --zerops-radius-input: 4px;
+
+  --zerops-font-head: 'Geologica', sans-serif;
+  --zerops-font-body: 'Roboto', sans-serif;
+  --zerops-font-mono: 'JetBrains Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --zerops-primary-on: #ffffff;
+    --zerops-warning: #e3a008;
+
+    --zerops-bg: #161c25;
+    --zerops-surface: #1e2530;
+    --zerops-surface-high: #262e3b;
+    --zerops-on-surface: #f8f9ff;
+    --zerops-on-surface-muted: #a6afc2;
+    --zerops-outline-variant: #333d4d;
+    --zerops-card-bg: var(--zerops-surface);
+  }
+}
+
 html,
 body {
   display: block;
@@ -6,19 +61,12 @@ body {
 
 body {
   margin: 0;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  background: #0f172a;
-  color: #e2e8f0;
+  font-family: var(--zerops-font-body);
+  background: var(--zerops-bg);
+  color: var(--zerops-on-surface);
 }
 
-code {
-  background: rgba(148, 163, 184, 0.15);
-  padding: 0.15rem 0.4rem;
-  border-radius: 0.25rem;
-  font-size: 0.9em;
+code,
+pre {
+  font-family: var(--zerops-font-mono);
 }

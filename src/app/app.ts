@@ -7,9 +7,9 @@ import { RouterOutlet } from '@angular/router';
   template: `<router-outlet />`,
   styles: `
     :host {
-      max-width: 720px;
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 0 1.5rem;
       display: block;
     }
   `,
