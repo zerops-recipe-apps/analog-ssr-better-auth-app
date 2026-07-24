@@ -16,7 +16,7 @@ Click the deploy button to deploy directly to Zerops.
 <!-- #ZEROPS_EXTRACT_START:integration-guide# -->
 ### 1. Adding `zerops.yaml`
 
-The main configuration file — place at repository root. It tells Zerops how to build, deploy and run your app. This one declares 2 setups (`dev`, `prod`), runs `initCommands` at boot (migrations), and ships readiness + health checks.
+The main configuration file — place at repository root. It tells Zerops how to build, deploy and run your app. This one declares 2 setups (`dev`, `prod`), runs `initCommands` at boot (migrations, seed), and ships readiness + health checks.
 
 ```yaml
 zerops:
@@ -26,10 +26,12 @@ zerops:
       buildCommands:
         - npm ci
         - node scripts/bundle-migrate.mjs
+        - node scripts/bundle-seed.mjs
         - NODE_OPTIONS=--max-old-space-size=1500 npm run build
       deployFiles:
         - dist/analog
         - migrate.cjs
+        - seed.cjs
       cache:
         - node_modules
     deploy:
@@ -41,6 +43,7 @@ zerops:
       base: nodejs@22
       initCommands:
         - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node migrate.cjs
+        - zsc execOnce seed-v1 --retryUntilSuccessful -- node seed.cjs
       ports:
         - port: 3000
           httpSupport: true
@@ -52,6 +55,18 @@ zerops:
         DB_USER: ${db_user}
         DB_PASSWORD: ${db_password}
         APP_URL: ${zeropsSubdomain}
+        CACHE_URL: ${cache_connectionString}
+        NATS_HOST: ${broker_hostname}
+        NATS_PORT: ${broker_port}
+        NATS_USER: ${broker_user}
+        NATS_PASS: ${broker_password}
+        SEARCH_URL: ${search_connectionString}
+        SEARCH_MASTER_KEY: ${search_masterKey}
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_REGION: us-east-1
+        S3_BUCKET: ${storage_bucketName}
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
       start: node dist/analog/server/index.mjs
       healthCheck:
         httpGet:
@@ -72,6 +87,7 @@ zerops:
       os: ubuntu
       initCommands:
         - zsc execOnce ${appVersionId} --retryUntilSuccessful -- node scripts/migrate.mjs
+        - zsc execOnce seed-v1 --retryUntilSuccessful -- node scripts/seed.mjs
       ports:
         - port: 5173
           httpSupport: true
@@ -83,6 +99,18 @@ zerops:
         DB_USER: ${db_user}
         DB_PASSWORD: ${db_password}
         APP_URL: ${zeropsSubdomain}
+        CACHE_URL: ${cache_connectionString}
+        NATS_HOST: ${broker_hostname}
+        NATS_PORT: ${broker_port}
+        NATS_USER: ${broker_user}
+        NATS_PASS: ${broker_password}
+        SEARCH_URL: ${search_connectionString}
+        SEARCH_MASTER_KEY: ${search_masterKey}
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_REGION: us-east-1
+        S3_BUCKET: ${storage_bucketName}
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
       start: zsc noop --silent
 ```
 <!-- #ZEROPS_EXTRACT_END:integration-guide# -->

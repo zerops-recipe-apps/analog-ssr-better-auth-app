@@ -3,6 +3,7 @@
 /tmp
 /out-tsc
 /migrate.cjs
+/seed.cjs
 
 # Node
 /node_modules
