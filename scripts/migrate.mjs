@@ -51,6 +51,12 @@ CREATE TABLE IF NOT EXISTS "verification" (
   "createdAt" TIMESTAMP,
   "updatedAt" TIMESTAMP
 );
+
+-- Feature-pass addition: profile bio (crud "update"). Deliberately not a
+-- Better Auth "additionalField" -- the profile routes read/write it via
+-- plain SQL and only use Better Auth's session API for authentication,
+-- so the core schema stays exactly what Better Auth itself generates.
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "bio" TEXT;
 `;
 
 async function main() {
