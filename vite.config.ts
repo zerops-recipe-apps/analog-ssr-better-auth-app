@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import analog from '@analogjs/platform';
+import angular from '@analogjs/vite-plugin-angular';
+import nitro from '@analogjs/vite-plugin-nitro';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://vitejs.dev/config/
@@ -12,7 +14,7 @@ export default defineConfig(() => ({
   },
   // tailwindcss() must run before analog() so the Angular/Vite template
   // transform sees Tailwind's generated utility classes already resolved.
-  plugins: [tailwindcss(), analog()],
+  plugins: [tailwindcss(), analog(), angular(), nitro()],
   server: {
     host: '0.0.0.0',
     allowedHosts: true,
